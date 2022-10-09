@@ -1,0 +1,56 @@
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+		<title>QTPy Motion Light Sword</title>
+	</head>
+	<body bgcolor="#800080">
+	<font  color="#ffffff"; style="bold";>
+	<form>
+		<select name="poses" id="poses" onchange="selectPose()">					
+			<option>Select</option>
+			<option value="READ">Read</option>
+			<option value="NEW">New</option>
+    	</select>
+	</form>
+	<form action="/update" method="post">
+		<p>
+			<label for "poseName">Name</label>
+			<input type=text name="poseName">
+		</p>
+		<p>
+			<label>Rotation:</label></br>
+			<label for "rotX">X :</label>
+			<input type="text" name="rotX"></br>
+			<label for "rotY">Y :</label>
+			<input type="text" name="rotY"></br>
+			<label for "rotZ">Z :</label>
+			<input type="text" name="rotZ"></br>
+		</p>
+		<p>
+			<label for "html5ColorPicker">Color Selection </label>
+			<input type="color" id="html5ColorPicker" onchange="changeColor(0, 0, 0, 0)">
+		</p>
+		<p>
+			<label>Acceleration:</label></br>
+			<label for "accX">X :</label>
+			<input type="text" name="accX"/></br>
+			<label for "accY">Y :</label>
+			<input type="text" name="accY"/></br>
+			<label for "accZ">Z :</label>
+			<input type="text" name="accZ"/></br>
+		</p>
+		<p>
+			<label >Error Margin:</label></br>
+			<input type="text" name="errorMargin"></br>
+		</p>
+		<p>
+			<input type="button" value="Remove" action="RemoveAction()" >
+			<input type="button" value="Read" action="ReadIMU()">
+			<input type="submit" value="Save" action="SaveAction()">
+		</p>
+	</form>
+	</font>
+	<script src="editor.js"></script>
+	</body>
+</html>
+
