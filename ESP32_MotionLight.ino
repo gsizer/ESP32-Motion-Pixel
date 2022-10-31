@@ -36,23 +36,27 @@ typedef struct {
 } pose_t;
 
 // default entry
-pose_t *poseDefault = {};
+pose_t *poseDefault;
 size_t poseLen = 0;
 int poseCount = 0;
 
 /////////////////////////////////////////////////////////
-// mpu6050
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
-#include <Wire.h>
-Adafruit_MPU6050 mpu;
-sensors_event_t accelerometer, gyroscope, temperature;
+// QTPy LiPo BFF Backpack
+#define BATT_MON A0
+float vbat = 0.0;
+
+/////////////////////////////////////////////////////////
+// LSM6DSOX
+#include <Adafruit_LSM6DSOX.h>
+Adafruit_LSM6DSOX imu;
+sensors_event_t accel, gyro, tempC;
+int imuErr = 0;
 
 /////////////////////////////////////////////////////////
 // NeoPixel
-#define powerPin A1
 #include <Adafruit_NeoPixel.h>
-#define pixelPin A0
+#define powerPin A1
+#define pixelPin A2
 #define pixelCount 1
 Adafruit_NeoPixel pixel(pixelCount, pixelPin, NEO_GRB + NEO_KHZ800);
 
@@ -67,22 +71,23 @@ const char *password = "lostinspace";
 WebServer server(80);
 
 void handleRoot(){
-  char temp[400];
+  char temp[512];
   snprintf(
     temp,
-    400,
+    512, // i'm too lazy to count should be good.
     "<html><head><meta http-equiv='refresh' content='5'/>\
     <title>ESP32 Motion Light</title></head>\
     <body background-color=#880088 font-color=#cccccc>\
     <ul name='Rotation'><li>X:%02d<\li><li>Y:%02d<\li><li>Z:%02d<\li></ul>\
     <ul name='Acceleration'><li>X:%02d<\li><li>Y:%02d<\li><li>Z:%02d<\li></ul>\
-    </body></html>",
-    gyroscope.gyro.x,
-    gyroscope.gyro.y,
-    gyroscope.gyro.z,
-    accelerometer.acceleration.x,
-    accelerometer.acceleration.y,
-    accelerometer.acceleration.z
+    </body>%02d</html>",
+    gyro.gyro.x,
+    gyro.gyro.y,
+    gyro.gyro.z,
+    accel.acceleration.x,
+    accel.acceleration.y,
+    accel.acceleration.z,
+    tempC.temperature
   );
   server.send(200, "text/html", temp);
 }
@@ -117,17 +122,20 @@ void setup() {
     return;
   }
   poseDefault = (pose_t *) buff; // cast buffer to struct ptr
-  // MPU6050
-  if(mpu.begin()){
-    mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-    mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-    mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  }
+  
+  // LSM6DSOX
+  imuErr = imu.begin_I2C();
+  imu.setAccelDataRate(LSM6DS_RATE_12_5_HZ);
+  imu.setAccelRange(LSM6DS_ACCEL_RANGE_16_G);
+  imu.setGyroDataRate(LSM6DS_RATE_12_5_HZ);
+  imu.setGyroRange(LSM6DS_GYRO_RANGE_2000_DPS);
+  
   // NeoPixel
-  pinMode(powerPin, OUTPUT);
-  digitalWrite(powerPin, HIGH);
+  pinMode(powerPin, OUTPUT); // set pin to OUTPUT
+  digitalWrite(powerPin, HIGH); // power up
   pixel.begin(); // initialize object
   pixel.clear(); // set pixel off
+  
   // WiFi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -135,7 +143,8 @@ void setup() {
   while(WiFi.status() != WL_CONNECTED){
     delay(500);
   }
-  // multicast responder
+  
+  // Multicast Responder
   MDNS.begin("esp32");
   // url handler assignment
   server.on("/", handleRoot);
@@ -144,20 +153,16 @@ void setup() {
 }
 
 /////////////////////////////////////////////////////////
-// toggle given pin
-void toggle(int pin){
-  pinMode(pin, OUTPUT); // set pin to output
-  digitalWrite(pin, !digitalRead(pin)); // invert current pin value
-}
-
-/////////////////////////////////////////////////////////
 // rainbow loop
 void rainbow(int wait = 10){
   // begin at red
-  color_t rgbl = { 255, 0, 0, 255 };
+  color_t rgbl = RED;
   pixel.setPixelColor(0, pixel.Color(rgbl.red, rgbl.green, rgbl.blue));
-  pixel.setBrightness(rgbl.lux);  
-  pixel.show();
+  // fade in
+  for(int i=0; i<rgbl.lux; i++){
+    pixel.setBrightness(i);  
+    pixel.show();
+  }
   delay(wait*10);
   // increase green to yellow
   for( rgbl.green = 0; rgbl.green < 255; rgbl.green++ ){
@@ -195,15 +200,23 @@ void rainbow(int wait = 10){
     pixel.show();
     delay(wait);
   }
+    // fade out
+  for(int i=rgbl.lux; i>0; i--){
+    pixel.setBrightness(i);  
+    pixel.show();
+  }
 }
 
 /////////////////////////////////////////////////////////
 // loop
 void loop() {
-  // put your main code here, to run repeatedly:
-  // Get new sensor events with the readings
-  mpu.getEvent(&accelerometer, &gyroscope, &temperature);
+  // check battery level
+  vbat = analogRead(BATT_MON);
+  // Get new sensor readings
+  imu.getEvent(&accel, &gyro, &tempC);
+  // process clients
   server.handleClient();
+  // light up pixel
   rainbow(10);
   delay(2);
 }

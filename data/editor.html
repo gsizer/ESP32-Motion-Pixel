@@ -2,16 +2,11 @@
 	<head>
 		<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
 		<title>QTPy Motion Light Sword</title>
+		<script type="javascript">
+		</script>
 	</head>
 	<body bgcolor="#800080">
 	<font  color="#ffffff"; style="bold";>
-	<form>
-		<select name="poses" id="poses" onchange="selectPose()">					
-			<option>Select</option>
-			<option value="READ">Read</option>
-			<option value="NEW">New</option>
-    	</select>
-	</form>
 	<form action="/update" method="post">
 		<p>
 			<label for "poseName">Name</label>
@@ -28,7 +23,7 @@
 		</p>
 		<p>
 			<label for "html5ColorPicker">Color Selection </label>
-			<input type="color" id="html5ColorPicker" onchange="changeColor(0, 0, 0, 0)">
+			<input type="color" id="html5ColorPicker" onchange="clickColor(0, 0, 0, 0)">
 		</p>
 		<p>
 			<label>Acceleration:</label></br>
@@ -50,7 +45,5 @@
 		</p>
 	</form>
 	</font>
-	<script src="./editor.js"></script>
 	</body>
 </html>
-
